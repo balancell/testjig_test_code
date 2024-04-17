@@ -5,6 +5,9 @@ from INA3221_mqtt import *
 import json
 
 CONFIG_FILE_PATH : str = "/home/admin/Documents/jig_config.json" #TODO: make this an external argument called when running this script
+POLL_RATE = 1	# poll sensor readings once a second
+
+
 
 try:
     with open(CONFIG_FILE_PATH, 'r') as file:
@@ -18,11 +21,9 @@ publishingTopic = json_data["Topic"].get("JigName") + "/" + json_data["Topic"].g
 print(publishingTopic)
 
 Isensor = INA3221_mqtt(publishingTopic)
-
+Isensor.publish(publishingTopic,POLL_RATE)
 
 while True:
-    manufacturerID = Isensor.printArbitraryRegister(0xFE)
-    readings = Isensor.publishReadings(publishingTopic)
     print(readings)
     time.sleep(1)
 

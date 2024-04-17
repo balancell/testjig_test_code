@@ -11,6 +11,7 @@ import time
 import smbus
 import paho.mqtt.client as paho
 import json
+import threading
 
 
 # constants
@@ -74,7 +75,7 @@ class INA3221_mqtt():
     ###########################
     # INA3221 Code
     ###########################
-    def __init__(self, topic, host = "localhost", port = 1883, twi=1, addr=INA3221_ADDRESS, s1=0.1,s2=0.1,s3=0.1):
+    def __init__(self, topic, poll_rate = 1, host = "localhost", port = 1883, twi=1, addr=INA3221_ADDRESS, s1=0.1,s2=0.1,s3=0.1):
         self._bus = smbus.SMBus(twi)
         self._addr = addr
         config = INA3221_CONFIG_ENABLE_CHAN1 |		\
@@ -200,7 +201,7 @@ class INA3221_mqtt():
         register_val = self._read_register_little_endian(register)
         return hex(register_val)
         
-    def publishReadings(self,publishingTopic):
+    def _publishOnce(self,publishingTopic):
     #Publish all sensor readings to an mqtt server with a specified topic
     
         for i in range(1, 4):
@@ -212,3 +213,22 @@ class INA3221_mqtt():
         self.client.publish(publishingTopic,json.dumps(self.sensorReadings),0)
         return self.sensorReadings
         
+        
+    def _publishReadings_periodic(self,publishingTopic,interval):
+    #Publish all sensor readings to an mqtt server with a specified topic
+        while True:
+        
+            for i in range(1, 4):
+              key = f"Ch{i}"  # Construct the key as "Ch_1", "Ch_2", "Ch_3"
+              value = [self.getCurrent_A(i), self.getBusVoltage_V(i)]  # Create an array with two elements based on the current index
+              self.sensorReadings[key] = value  # Assign the key-value pair to the dictionary
+             # time.sleep(0.1)
+              
+            self.client.publish(publishingTopic,json.dumps(self.sensorReadings),0)
+            time.sleep(interval)
+        
+    def publish(self,poll_rate,publishingTopic):
+
+        thread = threading.Thread(target=self._publishReadings_periodic, args=(publishingTopic,poll_rate,))
+        thread.daemon = True  # Set daemon to True to automatically terminate thread when main program exits
+        thread.start()
