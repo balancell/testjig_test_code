@@ -1,0 +1,4 @@
+{
+"Topic" : {"JigName" : "BDI_test_jig" , "data_source_type" : "instrument" , "data_source" : "INA3221" , "message_type" : "GET"}
+
+}
